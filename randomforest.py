@@ -19,6 +19,7 @@ df_rock2 = pd.read_csv('rock2.csv')
 frames = [df_stop1, df_stop2, df_rock1, df_rock2]
 df_train = pd.concat(frames)
 
+#这里写错了 还没改
 df_train[x_columns] = df_train[x_columns].divide(df_train['x0'], axis=0)
 df_train['label'] = df_train['label'].divide(df_train['y0'], axis=0)
 df_train['label'] = df_train['label'].astype(int)
