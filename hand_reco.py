@@ -7,7 +7,7 @@ mp_hands = mp.solutions.hands
 # For webcam input:
 cap = cv2.VideoCapture(0)
 with mp_hands.Hands(
-    model_complexity=0,
+    max_num_hands=2,
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5) as hands:
   while cap.isOpened():
@@ -35,10 +35,7 @@ with mp_hands.Hands(
             mp_drawing_styles.get_default_hand_landmarks_style(),
             mp_drawing_styles.get_default_hand_connections_style())
     # Flip the image horizontally for a selfie-view display.
-    cv2.imshow('MediaPipe Hands', cv2.flip(image, 1))
+    cv2.imshow('MediaPipe Hands', cv2.flip(image, -1))
     if cv2.waitKey(5) & 0xFF == 27:
       break
 cap.release()
-
-
-#sudo apt install libxcb-shm0 libcdio-paranoia-dev libsdl2-2.0-0 libxv1  libtheora0 libva-drm2 libva-x11-2 libvdpau1 libharfbuzz0b libbluray2 libatlas-base-dev libhdf5-103 libgtk-3-0 libdc1394-22 libopenexr23
