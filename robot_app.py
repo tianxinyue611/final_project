@@ -111,23 +111,23 @@ def main():
         cv.imshow('Hand Gesture Recognition', debug_image)
 
         if(gesture_label=='stop'and previous_label!='stop'):
-            #stop(pA)
-            #stop(pB)
+            stop(pA)
+            stop(pB)
             print('stop')
 
         elif(gesture_label=='move' and previous_label!='move'):
-            #clockwise(pA, full_dc, AIN1, AIN2)
-            #clockwise(pB, full_dc, BIN1, BIN2)
+            clockwise(pA, full_dc, AIN1, AIN2)
+            clockwise(pB, full_dc, BIN1, BIN2)
             print('move')
 
         elif(gesture_label=='left' and previous_label!='left'):
-            #clockwise(pA, full_dc, AIN1, AIN2)
-            #clockwise(pB, half_dc, BIN1, BIN2)
+            clockwise(pA, full_dc, AIN1, AIN2)
+            clockwise(pB, half_dc, BIN1, BIN2)
             print('left')
 
         elif(gesture_label=='right' and previous_label!='right'):
-            #clockwise(pA, half_dc, AIN1, AIN2)
-            #clockwise(pB, full_dc, BIN1, BIN2)
+            clockwise(pA, half_dc, AIN1, AIN2)
+            clockwise(pB, full_dc, BIN1, BIN2)
             print('right')
 
 
