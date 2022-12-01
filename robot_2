@@ -11,6 +11,7 @@ import time
 import collections
 
 def main():
+    stk = collections.deque()
     GPIO.setwarnings(False)
     AIN1 = 5
     AIN2 = 6
@@ -107,13 +108,13 @@ def main():
                     continue
                 # print(array_x)
                 # print(array_y)
-                if min(array_x[8], array_x[12], array_x[16]) == min(array_x):
+                if min(array_x[8], array_x[12], array_x[16]) == min(array_x) and max(array_x[0], array_x[1],array_x[2]) == max(array_x):
                     print("Right")
                     gesture_label = "right"
-                elif array_y[0] == max(array_y) and array_y[8] <= array_y[5]:
+                elif array_y[0] == max(array_y) and array_y[8] <= array_y[6] and array_y[12] <= array_y[10] and array_y[16] <= array_y[14]:
                     print("Move")
                     gesture_label = "move"
-                elif array_y[0] == max(array_y) and array_y[8] >= array_y[5]:
+                elif array_y[0] == max(array_y) and array_y[8] >= array_y[6] and array_y[12] >= array_y[10] and array_y[16] >= array_y[14]:
                     print("Stop")
                     gesture_label = "stop"
                 elif array_y[0] != max(array_y) and array_x[8] > array_x[5]:
@@ -136,29 +137,31 @@ def main():
         #print(gesture_label)
 
         cv.imshow('Hand Gesture Recognition', debug_image)
+        stk.popleft()
+        stk.append(gesture_label)
+        if stk[0] == stk[1] and stk[1] == stk[2] and stk[2] == stk[3]:
+            if stk[0] == 'stop':
+                stop(pA)
+                stop(pB)
+                print('stop')
+    
+            elif( stk[0] =='move'):
+                clockwise(pA, full_dc, AIN1, AIN2)
+                clockwise(pB, full_dc, BIN1, BIN2)
+                print('move')
+    
+            elif( stk[0] == 'left'):
+                clockwise(pA, full_dc, AIN1, AIN2)
+                clockwise(pB, half_dc, BIN1, BIN2)
+                print('left')
+    
+            elif( stk[0] == 'right'):
+                clockwise(pA, half_dc, AIN1, AIN2)
+                clockwise(pB, full_dc, BIN1, BIN2)
+                print('right')
 
-        if(gesture_label=='stop'and previous_label!='stop'):
-            stop(pA)
-            stop(pB)
-            print('stop')
-
-        elif(gesture_label=='move' and previous_label!='move'):
-            clockwise(pA, full_dc, AIN1, AIN2)
-            clockwise(pB, full_dc, BIN1, BIN2)
-            print('move')
-
-        elif(gesture_label=='left' and previous_label!='left'):
-            clockwise(pA, full_dc, AIN1, AIN2)
-            clockwise(pB, half_dc, BIN1, BIN2)
-            print('left')
-
-        elif(gesture_label=='right' and previous_label!='right'):
-            clockwise(pA, half_dc, AIN1, AIN2)
-            clockwise(pB, full_dc, BIN1, BIN2)
-            print('right')
 
 
-        previous_label = gesture_label
 
     cap.release()
 
