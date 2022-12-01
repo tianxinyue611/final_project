@@ -9,9 +9,20 @@ import mediapipe as mp
 import RPi.GPIO as GPIO
 import time
 import collections
+  
+#设置 GPIO 模式为 BCM
+GPIO.setmode(GPIO.BCM)
+  
+#定义 GPIO 引脚
+GPIO_TRIGGER = 26
+GPIO_ECHO = 19
+  
+#设置 GPIO 的工作方式 (IN / OUT)
+GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
+GPIO.setup(GPIO_ECHO, GPIO.IN)
 
 def main():
-    stk = collections.deque()
+    stk = collections.deque(['stop','stop','stop','stop'])
     GPIO.setwarnings(False)
     AIN1 = 5
     AIN2 = 6
@@ -28,8 +39,8 @@ def main():
     GPIO.setup(BIN2, GPIO.OUT)
     frequency = 50
     stop_dc = 0
-    half_dc = 50
-    full_dc = 100
+    half_dc = 25
+    full_dc = 50
     pA = GPIO.PWM(PWMA, frequency)
     pA.start(0)
     pB = GPIO.PWM(PWMB, frequency)
@@ -53,7 +64,7 @@ def main():
     previous_label = 'stop'
     code_run = True
     while code_run:
-        time.sleep(1)
+
         key = cv.waitKey(1)
         if key==27:
             break
@@ -64,7 +75,7 @@ def main():
         if not ret:
             continue
 
-        image = cv.flip(image, 1)
+        image = cv.flip(image, -1)
         debug_image = copy.deepcopy(image)
 
         image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
@@ -146,10 +157,17 @@ def main():
                 print('stop')
     
             elif( stk[0] =='move'):
-                clockwise(pA, full_dc, AIN1, AIN2)
-                clockwise(pB, full_dc, BIN1, BIN2)
-                print('move')
-    
+                dist = distance()
+                print("Measured Distance = {:.2f} cm".format(dist))
+                if(dist<40):
+                    counterclockwise(pA, full_dc, AIN1, AIN2)
+                    counterclockwise(pB, full_dc, BIN1, BIN2)
+                    print('distance less than 10, back')   
+                if(dist>70):
+                    clockwise(pA, full_dc, AIN1, AIN2)
+                    clockwise(pB, full_dc, BIN1, BIN2)
+                    print('distance more than 70, move')
+                
             elif( stk[0] == 'left'):
                 clockwise(pA, full_dc, AIN1, AIN2)
                 clockwise(pB, half_dc, BIN1, BIN2)
@@ -159,8 +177,7 @@ def main():
                 clockwise(pA, half_dc, AIN1, AIN2)
                 clockwise(pB, full_dc, BIN1, BIN2)
                 print('right')
-
-
+                
 
 
     cap.release()
@@ -175,7 +192,30 @@ def main():
 
     GPIO.cleanup()
 
-
+def distance():
+    # 发送高电平信号到 Trig 引脚
+    GPIO.output(GPIO_TRIGGER, True)
+  
+    # 持续 10 us 
+    time.sleep(0.00001)
+    GPIO.output(GPIO_TRIGGER, False)
+  
+    start_time = time.time()
+    stop_time = time.time()
+  
+    # 记录发送超声波的时刻1
+    while GPIO.input(GPIO_ECHO) == 0:
+        start_time = time.time()
+  
+    # 记录接收到返回超声波的时刻2
+    while GPIO.input(GPIO_ECHO) == 1:
+        stop_time = time.time()
+    # 计算超声波的往返时间 = 时刻2 - 时刻1
+    time_elapsed = stop_time - start_time
+    # 声波的速度为 343m/s， 转化为 34300cm/s。
+    distance = (time_elapsed * 34300) / 2
+  
+    return distance
 
 
 def cal_bounding_rect(image, landmarks):
