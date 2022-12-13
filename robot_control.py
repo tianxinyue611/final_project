@@ -129,15 +129,16 @@ GPIO_ECHO = 19
 GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
 GPIO.setup(GPIO_ECHO, GPIO.IN)
 
-os.putenv('SDL_VIDEODRIVER', 'fbcon')
-os.putenv('SDL_FBDEV', '/dev/fb1')
-os.putenv('SDL_MOUSEDRV', 'TSLIB')
-os.putenv('SDL_MOUSEDEV', '/dev/input/touchscreen')
+#os.putenv('SDL_VIDEODRIVER', 'fbcon')
+#os.putenv('SDL_FBDEV', '/dev/fb1')
+#os.putenv('SDL_MOUSEDRV', 'TSLIB')
+#os.putenv('SDL_MOUSEDEV', '/dev/input/touchscreen')
 
 GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+'''
 start_time = time.time()
 pygame.init()
 
@@ -163,10 +164,10 @@ for my_text, text_pos in my_buttons.items():
     my_button_rect[my_text] = rect
 
 pygame.display.flip()
+'''
 
-
-stk_voice = collections.deque(['move', 'left', 'right'])
-
+#stk_voice = collections.deque(['move', 'left', 'right'])
+stk_voice = collections.deque()
 stk = collections.deque(['stop', 'stop', 'stop', 'stop'])
 # GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -185,8 +186,8 @@ GPIO.setup(BIN1, GPIO.OUT)
 GPIO.setup(BIN2, GPIO.OUT)
 frequency = 50
 stop_dc = 0
-half_dc = 25
-full_dc = 50
+half_dc = 20
+full_dc = 40
 pA = GPIO.PWM(PWMA, frequency)
 pA.start(0)
 pB = GPIO.PWM(PWMB, frequency)
@@ -229,16 +230,21 @@ while code_run:
             min_tracking_confidence=0.5
         )
 
-        gesture_label = 'stop'
+        
         previous_label = 'stop'
 
     while hand_control:
-
+        gesture_label = 'none'
+        if not GPIO.input(27):
+            code_run = False
+            hand_control = False
+            voice_control = False
+            cap.release()
         if not GPIO.input(23):
             print("Voice Control Mode")
             hand_control = False
             voice_control = True
-
+            cap.release()
 
         key = cv.waitKey(1)
         if key == 27:
@@ -280,8 +286,8 @@ while code_run:
                 # print(array_y)
                 if min(array_x[8], array_x[12], array_x[16]) == min(array_x) and max(array_x[0], array_x[1],
                                                                                      array_x[2]) == max(array_x):
-                    print("Right")
-                    gesture_label = "right"
+                    print("LEFT")
+                    gesture_label = "left"
                 elif array_y[0] == max(array_y) and array_y[8] <= array_y[6] and array_y[12] <= array_y[10] and array_y[
                     16] <= array_y[14]:
                     print("Move")
@@ -291,8 +297,8 @@ while code_run:
                     print("Stop")
                     gesture_label = "stop"
                 elif array_y[0] != max(array_y) and array_x[8] > array_x[5]:
-                    print("Left")
-                    gesture_label = "left"
+                    print("RIGHT")
+                    gesture_label = "right"
 
                 debug_image = cv.rectangle(debug_image, (brect[0], brect[1]), (brect[2], brect[3]),
                                            (0, 255, 0), 4)
@@ -322,35 +328,48 @@ while code_run:
             elif (stk[0] == 'move'):
                 dist = distance()
                 print("Measured Distance = {:.2f} cm".format(dist))
-                if (dist < 40):
+                if(dist<30):
                     counterclockwise(pA, full_dc, AIN1, AIN2)
                     counterclockwise(pB, full_dc, BIN1, BIN2)
-                    print('distance less than 10, back')
-                if (dist > 70):
+                    print('distance less than 30, back')   
+                else:
                     clockwise(pA, full_dc, AIN1, AIN2)
                     clockwise(pB, full_dc, BIN1, BIN2)
-                    print('distance more than 70, move')
-
+                    print('distance more than 30, move')
+                
             elif (stk[0] == 'left'):
-                clockwise(pA, full_dc, AIN1, AIN2)
-                clockwise(pB, half_dc, BIN1, BIN2)
+                clockwise(pA, 2*full_dc, AIN1, AIN2)
+                counterclockwise(pB, 2*full_dc, BIN1, BIN2)
                 print('left')
-
+                time.sleep(0.2)
+                clockwise(pA, stop_dc, AIN1, AIN2)
+                clockwise(pB, stop_dc, BIN1, BIN2) 
             elif (stk[0] == 'right'):
-                clockwise(pA, half_dc, AIN1, AIN2)
-                clockwise(pB, full_dc, BIN1, BIN2)
+                counterclockwise(pA, 2*full_dc, AIN1, AIN2)
+                clockwise(pB, 2*full_dc, BIN1, BIN2)
                 print('right')
+                time.sleep(0.2)
+                clockwise(pA, stop_dc, AIN1, AIN2)
+                clockwise(pB, stop_dc, BIN1, BIN2)        
 
 
     while voice_control:
+        clockwise(pA, stop_dc, AIN1, AIN2)
+        clockwise(pB, stop_dc, BIN1, BIN2)
+        if not GPIO.input(27):
+            code_run = False
+            hand_control = False
+            voice_control = False
+        
+        
         if not GPIO.input(22):
             print("Hand Control Mode")
             hand_control = True
             voice_control = False
 
-        key = cv.waitKey(1)
-        if key == 27:
-            break
+        #key = cv.waitKey(1)
+        #if key == 27:
+            #break
 
         # camera capture
 
@@ -358,48 +377,84 @@ while code_run:
         speech = sr.Microphone(device_index=2)
         with speech as source:
             print("say something!…")
-            audio = r.adjust_for_ambient_noise(source)
+            #print("step1")
+            #audio = r.adjust_for_ambient_noise(source)
+            #print("step2")
+#            if not GPIO.input(27):
+#                print("button 27")
+#                code_run = False
+#                hand_control = False
+#                voice_control = False
+#                print(code_run,hand_control,voice_control)
+#                
+#                break
             audio = r.listen(source)
+            #print("step3")
         try:
+            #print("try")    
             recog = r.recognize_google(audio)
+            stk_voice.append(recog)
             print("You said: " + recog)
         except sr.UnknownValueError:
             print("Google Speech Recognition could not understand audio")
         except sr.RequestError as e:
             print("Could not request results from Google Speech Recognition service; {0}".format(e))
-        stk.append(recog)
+        except speech_recognition.WaitTimeoutError as e:
+            print("other reason")
+        except Exception as e:
+            print("error")
+        string_move = ["move"," forward","blue","ford","google"]
+        string_left = ["left","lef","let","up","lock"]
+        string_right = ["right","rice","but"]
+        
+        if len(stk_voice) >= 1:
+            for each in string_move:
+                if each in recog.lower():
 
-        if (stk[0] == 'move'):
+                    clockwise(pA, full_dc, AIN1, AIN2)
+                    clockwise(pB, full_dc, BIN1, BIN2)
+                    time.sleep(1)
+                    clockwise(pA, stop_dc, AIN1, AIN2)
+                    clockwise(pB, stop_dc, BIN1, BIN2)
+                    break
 
-            clockwise(pA, full_dc, AIN1, AIN2)
-            clockwise(pB, full_dc, BIN1, BIN2)
-            time.sleep(1)
-            clockwise(pA, stop_dc, AIN1, AIN2)
-            clockwise(pB, stop_dc, BIN1, BIN2)
+            for each in string_left:
+                if each in recog.lower():
+                    clockwise(pA, 2 * full_dc, AIN1, AIN2)
+                    counterclockwise(pB, 2 * full_dc, BIN1, BIN2)
+                    print('left')
+                    time.sleep(1)
+                    clockwise(pA, stop_dc, AIN1, AIN2)
+                    clockwise(pB, stop_dc, BIN1, BIN2)
+                    break
+            for each in string_right:
+                if each in recog.lower():
+                    counterclockwise(pA, 2 * full_dc, AIN1, AIN2)
+                    clockwise(pB, 2 * full_dc, BIN1, BIN2)
+                    print('right')
+                    time.sleep(1)
+                    clockwise(pA, stop_dc, AIN1, AIN2)
+                    clockwise(pB, stop_dc, BIN1, BIN2)
+                    
+            stk_voice.popleft()
 
-        elif (stk[0] == 'left'):
-            clockwise(pA, 2 * full_dc, AIN1, AIN2)
-            counterclockwise(pB, 2 * full_dc, BIN1, BIN2)
-            print('left')
-            time.sleep(1)
-            clockwise(pA, stop_dc, AIN1, AIN2)
-            clockwise(pB, stop_dc, BIN1, BIN2)
-        elif (stk[0] == 'right'):
-            counterclockwise(pA, 2 * full_dc, AIN1, AIN2)
-            clockwise(pB, 2 * full_dc, BIN1, BIN2)
-            print('right')
-            time.sleep(1)
-            clockwise(pA, stop_dc, AIN1, AIN2)
-            clockwise(pB, stop_dc, BIN1, BIN2)
-
-    stk.popleft()
+        print("stop time")
+        for i in range(10):
+            if not GPIO.input(27):
+                print("button 27")
+                code_run = False
+                hand_control = False
+                voice_control = False
+            if not GPIO.input(22):
+                print("Hand Control Mode")
+                hand_control = True
+                voice_control = False
+            time.sleep(0.2)
 
 
 
 
-
-
-cap.release()
+#cap.release()
 
 pA.stop()
 pB.stop()
