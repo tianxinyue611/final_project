@@ -117,11 +117,11 @@ def stop(p):
 
 # --------------------Initialize--------------
 GPIO.setmode(GPIO.BCM)
-# 定义 GPIO 引脚
+
 GPIO_TRIGGER = 26
 GPIO_ECHO = 19
 
-# 设置 GPIO 的工作方式 (IN / OUT)
+
 GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
 GPIO.setup(GPIO_ECHO, GPIO.IN)
 
